@@ -1,0 +1,30 @@
+--------------------------------------------------------------------------------
+// https://www.streameast.live/*
+
+// clean DOM (remove modal ad-block dialog)
+
+{
+  const keep = [
+    document.querySelector('div.site-wrapper')
+  ]
+
+  while(document.body.childNodes.length)
+    document.body.removeChild(document.body.childNodes[0])
+
+  for (el of keep)
+    document.body.appendChild(el)
+}
+
+--------------------------------------------------------------------------------
+// view-source:https://www.streameast.live/nfl/dallas-cowboys-new-england-patriots/
+
+var BaglantiBilgisi = "https://n.cantholdus.xyz/cdn/cbsboston/strmrdr.m3u8";
+
+notes:
+======
+* there are several matches for:
+    /"([^"]+\.m3u8)"[,;]/
+* there is only one match (above) for:
+    /"([^"]+\.m3u8)"[;]/
+
+--------------------------------------------------------------------------------
