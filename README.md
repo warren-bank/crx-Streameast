@@ -5,7 +5,7 @@
 * the [Tampermonkey](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo) web browser extension for Chrome/Chromium
 
 Its purpose is to:
-* redirect embedded videos from [streameast.live](https://streameast.live/) to an external player
+* redirect embedded videos from [thestreameast.to](https://thestreameast.to/) to an external player
 * remove clutter from pages to provide a clean interface
 
 #### Legal:
