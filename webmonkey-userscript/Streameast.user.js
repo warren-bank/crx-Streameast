@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Streameast
 // @description  Watch videos in external player.
-// @version      2.0.1
-// @include      /^https?:\/\/(?:[^\.\/]*\.)*(?:streameast\.gd|googlapisapi\.com)\/.*$/
+// @version      2.0.2
+// @include      /^https?:\/\/(?:[^\.\/]*\.)*(?:streameast\.(?:gd|app)|googlapisapi\.com)\/.*$/
 // @icon         https://www.thestreameast.to/icons/favicon-48x48.png
 // @run-at       document-end
 // @homepage     https://github.com/warren-bank/crx-Streameast/tree/webmonkey-userscript/es5
