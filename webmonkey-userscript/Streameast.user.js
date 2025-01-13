@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Streameast
 // @description  Watch videos in external player.
-// @version      2.0.0
+// @version      2.0.1
 // @include      /^https?:\/\/(?:[^\.\/]*\.)*(?:streameast\.gd|googlapisapi\.com)\/.*$/
 // @icon         https://www.thestreameast.to/icons/favicon-48x48.png
 // @run-at       document-end
@@ -156,8 +156,12 @@ var process_window = function() {
 
   if (!state.document) {
     state.document    = unsafeWindow.document
-    nested_iframe     = get_nested_iframe()
-    state.referer_url = nested_iframe.url || unsafeWindow.location.href
+    state.referer_url = unsafeWindow.location.href
+
+    nested_iframe = get_nested_iframe()
+
+    if (nested_iframe.url)
+      state.referer_url = nested_iframe.url
   }
 
   process_dom_video_url() || process_dom_nested_iframe(nested_iframe)
@@ -272,7 +276,7 @@ var get_nested_iframe = function() {
     nested_iframe.url = nested_iframe.dom_element.getAttribute('src')
 
     if (typeof GM_resolveUrl === 'function')
-      nested_iframe.url = GM_resolveUrl(nested_iframe.url, unsafeWindow.location.href) || nested_iframe.url
+      nested_iframe.url = GM_resolveUrl(nested_iframe.url, state.referer_url) || nested_iframe.url
   }
 
   return nested_iframe
