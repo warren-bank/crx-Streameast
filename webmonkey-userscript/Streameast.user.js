@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Streameast
 // @description  Watch videos in external player.
-// @version      1.0.2
-// @include      /^https?:\/\/(?:[^\.\/]*\.)*(?:streameast\.(?:live|io)|thestreameast\.(?:to))\/.*$/
+// @version      2.0.0
+// @include      /^https?:\/\/(?:[^\.\/]*\.)*(?:streameast\.gd|googlapisapi\.com)\/.*$/
 // @icon         https://www.thestreameast.to/icons/favicon-48x48.png
 // @run-at       document-end
 // @homepage     https://github.com/warren-bank/crx-Streameast/tree/webmonkey-userscript/es5
@@ -17,6 +17,11 @@
 // ----------------------------------------------------------------------------- constants
 
 var user_options = {
+  "common": {
+    "enable_debug_alerts":          false,
+    "emulate_webmonkey":            false,
+    "init_delay_ms":                1000
+  },
   "webmonkey": {
     "post_intent_redirect_to_url":  "about:blank"
   },
@@ -25,6 +30,13 @@ var user_options = {
     "force_http":                   true,
     "force_https":                  false
   }
+}
+
+// ----------------------------------------------------------------------------- state
+
+var state = {
+  document:    null,
+  referer_url: null
 }
 
 // ----------------------------------------------------------------------------- URL links to tools on Webcast Reloaded website
@@ -130,75 +142,157 @@ var process_video_url = function(video_url, video_type, vtt_url, referer_url) {
 }
 
 var process_hls_url = function(hls_url, vtt_url, referer_url) {
-  return process_video_url(/* video_url= */ hls_url, /* video_type= */ 'application/x-mpegurl', vtt_url, referer_url)
+  process_video_url(/* video_url= */ hls_url, /* video_type= */ 'application/x-mpegurl', vtt_url, referer_url)
 }
 
 var process_dash_url = function(dash_url, vtt_url, referer_url) {
-  return process_video_url(/* video_url= */ dash_url, /* video_type= */ 'application/dash+xml', vtt_url, referer_url)
+  process_video_url(/* video_url= */ dash_url, /* video_type= */ 'application/dash+xml', vtt_url, referer_url)
 }
 
-// ----------------------------------------------------------------------------- clean DOM (remove modal ad-block dialog)
+// ----------------------------------------------------------------------------- process window
 
-var update_page_DOM = function() {
-  var keep = [
-    unsafeWindow.document.querySelector('div.site-wrapper')
-  ]
+var process_window = function() {
+  var nested_iframe
 
-  keep = keep.filter(function(el){return !!el})
-  if (!keep.length) return
-
-  while(unsafeWindow.document.body.childNodes.length)
-    unsafeWindow.document.body.removeChild(unsafeWindow.document.body.childNodes[0])
-
-  for (var i=0; i < keep.length; i++)
-    unsafeWindow.document.body.appendChild(keep[i])
-}
-
-// ----------------------------------------------------------------------------- process video
-
-var get_hls_url = function() {
-  var regex = {
-    whitespace: /[\r\n\t]+/g,
-    hls_url:    /['"]([^'"]+\.m3u8)['"][;]/i
+  if (!state.document) {
+    state.document    = unsafeWindow.document
+    nested_iframe     = get_nested_iframe()
+    state.referer_url = nested_iframe.url || unsafeWindow.location.href
   }
-  var hls_url = null
 
-  try {
-    var scripts, i, script, matches
+  process_dom_video_url() || process_dom_nested_iframe(nested_iframe)
+}
 
-    scripts = unsafeWindow.document.querySelectorAll('script:not([src])')
+// ----------------------------------------------------------------------------- process DOM (video url)
 
-    for (i=0; !hls_url && (i < scripts.length); i++) {
-      script = scripts[i]
-      script = script.innerText
-      script = script.replace(regex.whitespace, ' ').trim()
+var process_dom_video_url = function() {
+  var video_url = extract_dom_video_url()
 
-      if (!script) continue
+  if (video_url) {
+    if (user_options.common.enable_debug_alerts)
+      unsafeWindow.alert(JSON.stringify({hls_url: video_url, referer_url: state.referer_url}, null, 2))
 
-      matches = regex.hls_url.exec(script)
-      if (!matches || !matches.length) continue
+    process_hls_url(video_url, /* vtt_url= */ null, state.referer_url)
+  }
 
-      hls_url = matches[1]
-      break
+  return !!video_url
+}
+
+var extract_dom_video_url_regexs = {
+  whitespace: /[\r\n\t]+/g,
+  v01: /^.*['"]([^'"]+\.m3u8)['"].*$/,
+  v02: /^.*source:\s*window\.atob\(['"]([^'"]+)['"]\).*$/
+}
+
+var extract_dom_video_url = function() {
+  var scripts, script, video_url
+
+  scripts = state.document.querySelectorAll('script:not([src])')
+
+  for (var i=0; i < scripts.length; i++) {
+    script = scripts[i]
+    script = script.innerHTML
+    script = script.replace(extract_dom_video_url_regexs.whitespace, ' ')
+
+    video_url = extract_dom_video_url_01(script) || extract_dom_video_url_02(script)
+
+    if (video_url) break
+  }
+
+  return video_url
+}
+
+var extract_dom_video_url_01 = function(script) {
+  var video_url
+
+  if (extract_dom_video_url_regexs.v01.test(script)) {
+    video_url = script.replace(extract_dom_video_url_regexs.v01, '$1')
+  }
+
+  return video_url
+}
+
+var extract_dom_video_url_02 = function(script) {
+  var b64_url, video_url
+
+  if (extract_dom_video_url_regexs.v02.test(script)) {
+    b64_url   = script.replace(extract_dom_video_url_regexs.v02, '$1')
+    video_url = unsafeWindow.atob(b64_url) + '#video.m3u8'
+  }
+
+  return video_url
+}
+
+// ----------------------------------------------------------------------------- process DOM (nested iframe)
+
+var process_dom_nested_iframe = function(nested_iframe) {
+  // only run in WebMonkey
+  if ((typeof GM_loadFrame !== 'function') && !user_options.common.emulate_webmonkey) return
+
+  if (!nested_iframe)
+    nested_iframe = get_nested_iframe()
+
+  if (nested_iframe.dom_element) {
+    try {
+      // can the top window access the document belonging to the nested iframe (ie: same domain)
+      state.document    = nested_iframe.dom_element.contentWindow.document
+      state.referer_url = nested_iframe.dom_element.contentWindow.location.href
+
+      if (state.referer_url.indexOf('about:') === 0)
+        state.referer_url = nested_iframe.url
+
+      // success.. process the new DOM
+      process_window()
+    }
+    catch(e) {
+      if (user_options.common.enable_debug_alerts)
+        unsafeWindow.alert(JSON.stringify({iframe_url: nested_iframe.url, parent_url: state.referer_url}, null, 2))
+
+      // reload iframe in a new top window that can access the document
+      if (typeof GM_loadFrame === 'function')
+        GM_loadFrame(nested_iframe.url, state.referer_url, true)
+      else if (user_options.common.emulate_webmonkey)
+        redirect_to_url(nested_iframe.url)
+
+      state.document    = null
+      state.referer_url = null
     }
   }
-  catch(e){}
+}
 
-  return hls_url
+var get_nested_iframe = function() {
+  var nested_iframe = {
+    dom_element: null,
+    url: null
+  }
+
+  nested_iframe.dom_element = extract_dom_nested_iframe()
+
+  if (nested_iframe.dom_element) {
+    nested_iframe.url = nested_iframe.dom_element.getAttribute('src')
+
+    if (typeof GM_resolveUrl === 'function')
+      nested_iframe.url = GM_resolveUrl(nested_iframe.url, unsafeWindow.location.href) || nested_iframe.url
+  }
+
+  return nested_iframe
+}
+
+var extract_dom_nested_iframe = function() {
+  return state.document.querySelector('iframe[allowfullscreen][src]')
 }
 
 // ----------------------------------------------------------------------------- bootstrap
 
-var process_page = function() {
-  var hls_url = get_hls_url()
+var init = function() {
+  if (user_options.common.emulate_webmonkey && (window.top !== window))
+    return
 
-  if (hls_url) {
-    process_hls_url(hls_url)
-  }
-
-  update_page_DOM()
+  if (!state.document)
+    process_window()
 }
 
-process_page()
-
-// -----------------------------------------------------------------------------
+setTimeout(
+  init,
+  user_options.common.init_delay_ms
+)

@@ -1,0 +1,29 @@
+--------------------------------------------------------------------------------
+
+url:
+  https://www.streameast.gd/game/nba/85880817
+contains:
+  <iframe class="embed-responsive-item" id="wp_player" frameborder=0 height=100% width=100% src="https://googlapisapi.com/new-stream-embed/29977?newa=1" allowfullscreen scrolling=no allowtransparency></iframe>
+
+--------------------------------------------------------------------------------
+
+iframe url:
+  https://googlapisapi.com/new-stream-embed/29977?newa=1
+contains:
+  var player = new Clappr.Player({
+    source: window.atob('aHR0cHM6Ly9pbml0LmNsbWJvc2Vhbi5zcGFjZS9wbGF5bGlzdC8yOTk3Ny9sb2FkLXBsYXlsaXN0'),
+    mimeType: "application/x-mpegURL",
+which encodes:
+    source: https://init.clmbosean.space/playlist/29977/load-playlist
+
+--------------------------------------------------------------------------------
+
+test:
+  video     = https://init.clmbosean.space/playlist/29977/load-playlist#video.m3u8
+  referer   = https://googlapisapi.com/new-stream-embed/29977?newa=1
+  HLS-proxy = http://localhost:8080/aHR0cHM6Ly9pbml0LmNsbWJvc2Vhbi5zcGFjZS9wbGF5bGlzdC8yOTk3Ny9sb2FkLXBsYXlsaXN0I3ZpZGVvLm0zdTh8aHR0cHM6Ly9nb29nbGFwaXNhcGkuY29tL25ldy1zdHJlYW0tZW1iZWQvMjk5Nzc/bmV3YT0x.m3u8
+  Clappr    = http://webcast-reloaded.frii.site/4-clappr/index.html?override=true#/watch/aHR0cDovL2xvY2FsaG9zdDo4MDgwL2FIUjBjSE02THk5cGJtbDBMbU5zYldKdmMyVmhiaTV6Y0dGalpTOXdiR0Y1YkdsemRDOHlPVGszTnk5c2IyRmtMWEJzWVhsc2FYTjBJM1pwWkdWdkxtMHpkVGg4YUhSMGNITTZMeTluYjI5bmJHRndhWE5oY0drdVkyOXRMMjVsZHkxemRISmxZVzB0WlcxaVpXUXZNams1TnpjL2JtVjNZVDB4Lm0zdTg=
+result:
+  success, video stream plays properly through HLS-Proxy (on localhost)
+
+--------------------------------------------------------------------------------
